@@ -1,2 +1,277 @@
-# Disk-Scheduling1
-Disk Scheduling
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Disk Scheduling Final</title>
+
+<style>
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(120deg, #89f7fe, #66a6ff);
+    color: white;
+    text-align: center;
+}
+
+/* Container */
+.container {
+    width: 80%;
+    margin: 30px auto;
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+
+/* Title */
+h2 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+/* Inputs */
+input, select {
+    padding: 10px;
+    margin: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    outline: none;
+    transition: 0.3s;
+}
+
+input:focus, select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0,123,255,0.5);
+}
+
+/* Button */
+button {
+    padding: 10px 18px;
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+    font-weight: bold;
+}
+
+button:hover {
+    transform: scale(1.05);
+    background: linear-gradient(45deg, #0056b3, #003f7f);
+}
+
+/* Table */
+table {
+    margin: auto;
+    margin-top: 25px;
+    border-collapse: collapse;
+}
+
+td {
+    border: 2px solid #38bdf8;
+    padding: 12px;
+    min-width: 45px;
+    background: #334155;
+    color: white;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+/* Hover effect */
+td:hover {
+    background: #90caf9;
+    transform: scale(1.1);
+}
+
+/* Arrow */
+#arrow {
+    margin-top: 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #444;
+    word-wrap: break-word;
+}
+
+/* Total */
+#total {
+    margin-top: 10px;
+    color: #007bff;
+}
+
+/* Canvas */
+canvas {
+    border: 2px solid #ddd;
+    margin-top: 25px;
+    border-radius: 10px;
+    background: #fafafa;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+    }
+
+    td {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    #arrow {
+        font-size: 16px;
+    }
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Disk Scheduling</h2>
+
+<input id="requests" placeholder="98,183,37,122,14,124,65,67">
+<input id="head" placeholder="Head">
+
+<select id="algo">
+    <option>FCFS</option>
+    <option>SCAN</option>
+    <option>C-SCAN</option>
+</select>
+
+<select id="direction">
+    <option value="right">Right</option>
+    <option value="left">Left</option>
+</select>
+
+<br>
+<button onclick="run()">Run</button>
+
+<table>
+<tr id="tableRow"></tr>
+</table>
+
+<div id="arrow"></div>
+<h3 id="total"></h3>
+
+<canvas id="canvas" width="900" height="400"></canvas>
+
+</div>
+
+<script>
+
+function run() {
+
+    let req = document.getElementById("requests").value
+        .split(",").map(x => parseInt(x.trim()));
+
+    let head = parseInt(document.getElementById("head").value);
+    let algo = document.getElementById("algo").value;
+    let dir = document.getElementById("direction").value;
+
+    let seq = [];
+
+    // FCFS
+    if (algo === "FCFS") {
+        seq = [head, ...req];
+    }
+
+    // SCAN
+    else if (algo === "SCAN") {
+        let left = req.filter(x => x < head).sort((a,b)=>b-a);
+        let right = req.filter(x => x >= head).sort((a,b)=>a-b);
+
+        if (dir === "right") {
+            seq = [head, ...right, 199, ...left];
+        } else {
+            seq = [head, ...left, 0, ...right];
+        }
+    }
+
+    // C-SCAN
+    else if (algo === "C-SCAN") {
+        let left = req.filter(x => x < head).sort((a,b)=>a-b);
+        let right = req.filter(x => x >= head).sort((a,b)=>a-b);
+
+        if (dir === "right") {
+            seq = [head, ...right, 199, 0, ...left];
+        } else {
+            seq = [head, ...left.reverse(), 0, 199, ...right.reverse()];
+        }
+    }
+
+    // TABLE
+    let html = "";
+    seq.forEach(x => html += `<td>${x}</td>`);
+    document.getElementById("tableRow").innerHTML = html;
+
+    // ARROW
+    document.getElementById("arrow").innerHTML = seq.join(" → ");
+
+    // TOTAL MOVEMENT
+    let total = 0;
+    for (let i = 1; i < seq.length; i++) {
+        total += Math.abs(seq[i] - seq[i-1]);
+    }
+    document.getElementById("total").innerHTML =
+        "Total Head Movement = " + total;
+
+    draw(seq);
+}
+
+// GRAPH FIXED
+function draw(seq) {
+
+    let c = document.getElementById("canvas");
+    let ctx = c.getContext("2d");
+
+    ctx.clearRect(0,0,900,400);
+
+    // scale
+    ctx.beginPath();
+    ctx.moveTo(50,50);
+    ctx.lineTo(850,50);
+    ctx.stroke();
+
+    for (let i=0;i<=200;i+=20){
+        let x = 50 + i*4;
+        ctx.fillText(i,x-5,30);
+
+        ctx.beginPath();
+        ctx.moveTo(x,45);
+        ctx.lineTo(x,55);
+        ctx.stroke();
+    }
+
+    // movement line (IMPORTANT FIX)
+    ctx.beginPath();
+
+    for (let i=0;i<seq.length;i++){
+        let x = 50 + seq[i]*4;
+        let y = 100 + i*25;
+
+        if(i===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+    }
+
+    ctx.stroke();
+
+    // points
+    for (let i=0;i<seq.length;i++){
+        let x = 50 + seq[i]*4;
+        let y = 100 + i*25;
+
+        ctx.beginPath();
+        ctx.arc(x,y,5,0,2*Math.PI);
+        ctx.fill();
+
+        ctx.fillText(seq[i],x-10,y-10);
+    }
+}
+
+</script>
+
+</body>
+</html>
